@@ -1,5 +1,5 @@
 import torch
-import numpy np
+import numpy as np
 
 def get_ranks(model,torch_data_idxs,true,batch_size=128):
     ranks=[]

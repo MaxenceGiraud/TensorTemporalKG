@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-from tuckert import TuckERT
-from tuckerttr import TuckERTTR
-from tuckercpd import TuckERCPD
+from models.tuckert import TuckERT
+from models.tuckerttr import TuckERTTR
+from models.tuckercpd import TuckERCPD
 from train import train_temporal
 
 from load_data import Data
