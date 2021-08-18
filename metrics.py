@@ -1,20 +1,20 @@
 import torch
 import numpy as np
 
-def get_ranks(model,torch_data_idxs,true,batch_size=128):
+def get_ranks(model,torch_data_idxs,true,batch_size=128,device='cpu'):
     ranks=[]
 
     for i in range(torch_data_idxs.shape[0]//batch_size):
-        data_batch = torch_data_idxs[i*batch_size:(i+1)*batch_size]
-        predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2])
+        data_batch = torch_data_idxs[i*batch_size:(i+1)*batch_size].to(device)
+        predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2]).cpu()
 
         _, sort_idxs = torch.sort(predictions, dim=1, descending=True)
         for j in range(predictions.shape[0]):
             rank = np.where(sort_idxs[j]==true[i*batch_size + j])[0][0]
             ranks.append(rank+1)
 
-    data_batch = torch_data_idxs[(i+1)*batch_size:]
-    predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2])
+    data_batch = torch_data_idxs[(i+1)*batch_size:].to(device)
+    predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2]).cpu()
 
     _, sort_idxs = torch.sort(predictions, dim=1, descending=True)
     for j in range(predictions.shape[0]):

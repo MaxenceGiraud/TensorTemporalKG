@@ -23,9 +23,9 @@ class TuckERTTR(torch.nn.Module):
         self.nt = len(d.time)
 
         # Embedding matrices
-        self.E = torch.nn.Embedding(self.ne, de)
-        self.R = torch.nn.Embedding(self.nr, dr)
-        self.T = torch.nn.Embedding(self.nt,dt)
+        self.E = torch.nn.Embedding(self.ne, de).to(self.device)
+        self.R = torch.nn.Embedding(self.nr, dr).to(self.device)
+        self.T = torch.nn.Embedding(self.nt,dt).to(self.device)
 
         ni = [self.dr, self.de, self.de, self.dt]
         if isinstance(ranks,int) or isinstance(ranks,np.int64):
@@ -66,7 +66,7 @@ class TuckERTTR(torch.nn.Module):
         x = x.view(-1, 1, self.de)
 
         r = self.R(r_idx)
-        r = self.bnr(r)
+        # r = self.bnr(r)
         W_mat = torch.mm(r, W.view(self.dr, -1))
         W_mat = W_mat.view(-1, self.de, self.de*self.dt)
         # W_mat = self.hidden_dropout1(W_mat)

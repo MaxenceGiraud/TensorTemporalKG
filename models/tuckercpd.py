@@ -26,14 +26,14 @@ class TuckERCPD(torch.nn.Module):
         self.p = min(self.de,self.dt,self.dr)
 
         # Embedding matrices
-        self.E = torch.nn.Embedding(self.ne, de)
-        self.R = torch.nn.Embedding(self.nr, dr)
-        self.T = torch.nn.Embedding(self.nt,dt)
+        self.E = torch.nn.Embedding(self.ne, de).to(self.device)
+        self.R = torch.nn.Embedding(self.nr, dr).to(self.device)
+        self.T = torch.nn.Embedding(self.nt,dt).to(self.device)
 
 
         ### CPD Decomp of core tensor of Tucker
         # Core identity tensor of CPD
-        self.I = torch.zeros(*[self.p for _ in range(4)])
+        self.I = torch.zeros(*[self.p for _ in range(4)]).to(self.device)
         for i in range(self.p):
             self.I[i,i,i,i] = 1
 

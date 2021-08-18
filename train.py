@@ -11,18 +11,16 @@ def get_er_vocab(data):
             er_vocab[(quad[0], quad[1],quad[2])].append(quad[3])
         return er_vocab
     
-def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,cuda=False):
+def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
         batch = er_vocab_pairs[idx:idx+batch_size]
         # targets = np.zeros((len(batch), len(data.entities)))
         targets = np.zeros((len(batch), n_entities))
         for idx, pair in enumerate(batch):
             targets[idx, er_vocab[pair]] = 1.
-        targets = torch.FloatTensor(targets)
-        if cuda:
-            targets = targets.cuda()
+        targets = torch.FloatTensor(targets).to(device)
         return np.array(batch), targets
 
-def train_temporal(model,data_idxs,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=20):
+def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=10,device='cpu'):
     ''' Train a TuckERT model
 
     Parameters
@@ -54,33 +52,41 @@ def train_temporal(model,data_idxs,n_iter=200,learning_rate=0.0005,batch_size=12
     # Init params
     model.train()
     losses = []
+    # loss_valid_all =[]
 
     for i in range(n_iter):
+        loss_batch =  []
+
+        # pred_valid = model.forward(data_idxs_valid[:,0],data_idxs_valid[:,1],data_idxs_valid[:,2])[:,0]
+        # loss_valid = model.loss(torch.FloatTensor(pred_valid).to(device),torch.FloatTensor(data_idxs_valid[:,-1]).to(device))
+        # loss_valid_all.append(loss_valid)
 
         for j in range(0, len(er_vocab_pairs), batch_size):
-            data_batch, targets = get_batch(batch_size,er_vocab, er_vocab_pairs, j,n_entities=n_entities)
+            data_batch, targets = get_batch(batch_size,er_vocab, er_vocab_pairs, j,n_entities=n_entities,device=device)
 
             opt.zero_grad()
-            e1_idx = torch.tensor(data_batch[:,0])
-            r_idx = torch.tensor(data_batch[:,1])  
-            t_idx = torch.tensor(data_batch[:,2])
+            e1_idx = torch.tensor(data_batch[:,0]).to(device)
+            r_idx = torch.tensor(data_batch[:,1]).to(device)
+            t_idx = torch.tensor(data_batch[:,2]).to(device)
 
             predictions = model.forward(e1_idx, r_idx,t_idx)
             loss = model.loss(predictions, targets)
+
+            
             loss.backward()
             opt.step()
-            losses.append(loss.item())
+            loss_batch.append(loss.item())
+        
+        losses.append(np.mean(loss_batch))
 
         if i % print_loss_every == 0 :
-            print(f"{i}/{n_iter} loss = {np.mean(losses)}")
+            print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
 
-        # Early Spotting (#TODO on validation set ????)
-        if i > early_stopping : 
-            if losses[-early_stopping] >= max(losses[-early_stopping:]):
-                print(f"{i}/{n_iter} loss = {np.mean(losses)}")
-                break
-
-
+        # Early Stopping (#TODO on validation set ????)
+        # if i > early_stopping : 
+        #     if max(loss_valid_all[-early_stopping:]) < max(loss_valid_all):
+        #         print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
+        #         break
 
     model.eval()
 
