@@ -20,7 +20,7 @@ class TuckERT(torch.nn.Module):
         # Data dimensionality
         self.ne = len(d.entities)
         self.nr = len(d.relations)
-        self.nt = len(d.temporal)
+        self.nt = len(d.time)
         
 
         # Embedding matrices

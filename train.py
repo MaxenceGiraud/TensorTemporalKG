@@ -8,12 +8,12 @@ from collections import defaultdict
 def get_er_vocab(data):
     ''' Construct a dict of the data containing [E,R,T] as keys and target entities as values
     '''
-    
-        er_vocab = defaultdict(list)
-        for quad in data:
-            er_vocab[(quad[0], quad[1],quad[2])].append(quad[3])
-        return er_vocab
-    
+
+    er_vocab = defaultdict(list)
+    for quad in data:
+        er_vocab[(quad[0], quad[1],quad[2])].append(quad[3])
+    return er_vocab
+
 def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
     ''' Return a batch of data for training
     batch_size : int,
@@ -30,13 +30,13 @@ def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
         On which device to do the computation
     '''
 
-        batch = er_vocab_pairs[idx:idx+batch_size]
-        # targets = np.zeros((len(batch), len(data.entities)))
-        targets = np.zeros((len(batch), n_entities))
-        for idx, pair in enumerate(batch):
-            targets[idx, er_vocab[pair]] = 1.
-        targets = torch.FloatTensor(targets).to(device)
-        return np.array(batch), targets
+    batch = er_vocab_pairs[idx:idx+batch_size]
+    # targets = np.zeros((len(batch), len(data.entities)))
+    targets = np.zeros((len(batch), n_entities))
+    for idx, pair in enumerate(batch):
+        targets[idx, er_vocab[pair]] = 1.
+    targets = torch.FloatTensor(targets).to(device)
+    return np.array(batch), targets
 
 
 def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=10,device='cpu'):
@@ -89,7 +89,7 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
     for i in range(n_iter):
         loss_batch =  []
 
-        pred_valid = model.forward(data_idxs_valid[:,0],data_idxs_valid[:,1],data_idxs_valid[:,2]).to(device)
+        pred_valid = model.forward(torch.tensor(data_idxs_valid[:,0]).to(device),torch.tensor(data_idxs_valid[:,1]).to(device),torch.tensor(data_idxs_valid[:,2]).to(device))
         loss_valid = model.loss(pred_valid,targets_valid)
         loss_valid_all.append(loss_valid)
 
