@@ -89,5 +89,4 @@ class TuckERCPD(torch.nn.Module):
 
         # Turn results into "probabilities"
         pred = torch.sigmoid(x)
-
         return pred

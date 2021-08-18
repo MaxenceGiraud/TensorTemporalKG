@@ -61,7 +61,6 @@ def grid_search(model,data,param_model_grid,learning_grid,file,cols):
 
 
 def main():
-    t_start = time.time()
     # load data and preprocess
     data = Data() 
 
@@ -72,6 +71,7 @@ def main():
         cud = False 
 
 
+    # Parameter Grid to test
     parameter_grid_tr = {'de':np.linspace(40,400,4,dtype=int),'dr':[20,50],'dt':[20,50],'ranks':[10],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
     parameter_grid_cpd = {'de':np.linspace(40,400,4,dtype=int),'dr':[20,50],'dt':[20,50],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
 

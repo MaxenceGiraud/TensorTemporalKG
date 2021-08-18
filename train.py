@@ -6,12 +6,30 @@ from collections import defaultdict
 
 
 def get_er_vocab(data):
+    ''' Construct a dict of the data containing [E,R,T] as keys and target entities as values
+    '''
+    
         er_vocab = defaultdict(list)
         for quad in data:
             er_vocab[(quad[0], quad[1],quad[2])].append(quad[3])
         return er_vocab
     
 def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
+    ''' Return a batch of data for training
+    batch_size : int,
+        .
+    er_vocab : dict,
+        Dict containing [E,R,T] as keys and target entities as values
+    er_vocab_pairs : list,
+        list of er_vocab keys
+    idx: int,
+        Batch number 
+    n_entities : int, 
+        Total number of entities considered in the model (n_e)
+    device :  {'cpu','cuda'}
+        On which device to do the computation
+    '''
+
         batch = er_vocab_pairs[idx:idx+batch_size]
         # targets = np.zeros((len(batch), len(data.entities)))
         targets = np.zeros((len(batch), n_entities))
@@ -20,8 +38,9 @@ def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
         targets = torch.FloatTensor(targets).to(device)
         return np.array(batch), targets
 
+
 def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=10,device='cpu'):
-    ''' Train a TuckERT model
+    ''' Train a temporal KG model
 
     Parameters
     -----------
@@ -35,7 +54,14 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
         Learning rate
     batch size : int,
         Batch size
+    print_loss_every : int,
+        Frequency for when to print the losses
+    early_stopping : {False,int}:
+        If False does nothing, if a number will perform early stopping using this int
+    device : {'cpu','cuda'}
+        On which device to do the computation
     '''
+
     if early_stopping == False : 
         early_stopping = n_iter + 1
         

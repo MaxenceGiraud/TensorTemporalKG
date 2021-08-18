@@ -27,6 +27,7 @@ class TuckERTTR(torch.nn.Module):
         self.R = torch.nn.Embedding(self.nr, dr).to(self.device)
         self.T = torch.nn.Embedding(self.nt,dt).to(self.device)
 
+        # Size of Tensor Ring decompostion tensors
         ni = [self.dr, self.de, self.de, self.dt]
         if isinstance(ranks,int) or isinstance(ranks,np.int64):
             ranks = [ranks for _ in range(5)]
@@ -35,9 +36,11 @@ class TuckERTTR(torch.nn.Module):
         else : 
             raise TypeError('ranks must be int or list of len 5')
         
+        # List of tensors of the TR
         self.Zlist = torch.nn.ParameterList([torch.nn.Parameter(torch.tensor(np.random.uniform(-1e-1, 1e-1, (ranks[i], ni[i], ranks[i+1])), dtype=torch.float, requires_grad=True).to(self.device)) for i in range(4)])
 
 
+        # "Special" Layers
         self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
         self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
         self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
@@ -54,17 +57,19 @@ class TuckERTTR(torch.nn.Module):
         xavier_normal_(self.T.weight.data)
 
     def forward(self, e1_idx, r_idx,t_idx):
+
+        # Recover core tensor from TR (compute the trace of all the tensors)
         W = torch.einsum('aib,bjc,ckd,dla->ijkl', list(self.Zlist))
-        
         W = W.view(self.dr, self.de, self.de, self.dt)
 
-
+        # Mode 1 product with entity vector
         e1 = self.E(e1_idx)
         # x = self.bne(e1)
         # x = self.input_dropout(x)
         x = e1
         x = x.view(-1, 1, self.de)
 
+        # Mode 2 product with relation vector
         r = self.R(r_idx)
         # r = self.bnr(r)
         W_mat = torch.mm(r, W.view(self.dr, -1))
@@ -72,6 +77,7 @@ class TuckERTTR(torch.nn.Module):
         # W_mat = self.hidden_dropout1(W_mat)
         x = torch.bmm(x, W_mat) 
 
+        # Mode 3 product with temporal vector
         t = self.T(t_idx)
         # t = self.bnt(t)
         x = x.view(-1, self.de,self.dt)
@@ -79,7 +85,10 @@ class TuckERTTR(torch.nn.Module):
 
         # x = self.hidden_dropout2(x)
 
+        # Mode 4 product with entity matrix
         x= x.view(-1,self.de)
         x = torch.mm(x, self.E.weight.transpose(1,0))
+
+        # Turn results into "probabilities"
         pred = torch.sigmoid(x)
         return pred
