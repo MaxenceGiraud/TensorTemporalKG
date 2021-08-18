@@ -49,17 +49,23 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
 
     er_vocab_pairs = list(er_vocab.keys())
 
+    # Validation set for early stopping
+    targets_valid = np.zeros((data_idxs_valid.shape[0],n_entities))
+    for idx,ent_id in enumerate(data_idxs_valid[:,-1]):
+        targets_valid[idx,ent_id] = 1
+    targets_valid = torch.FloatTensor(targets_valid).to(device)
+
     # Init params
     model.train()
     losses = []
-    # loss_valid_all =[]
+    loss_valid_all =[]
 
     for i in range(n_iter):
         loss_batch =  []
 
-        # pred_valid = model.forward(data_idxs_valid[:,0],data_idxs_valid[:,1],data_idxs_valid[:,2])[:,0]
-        # loss_valid = model.loss(torch.FloatTensor(pred_valid).to(device),torch.FloatTensor(data_idxs_valid[:,-1]).to(device))
-        # loss_valid_all.append(loss_valid)
+        pred_valid = model.forward(data_idxs_valid[:,0],data_idxs_valid[:,1],data_idxs_valid[:,2]).to(device)
+        loss_valid = model.loss(pred_valid,targets_valid)
+        loss_valid_all.append(loss_valid)
 
         for j in range(0, len(er_vocab_pairs), batch_size):
             data_batch, targets = get_batch(batch_size,er_vocab, er_vocab_pairs, j,n_entities=n_entities,device=device)
@@ -80,13 +86,13 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
         losses.append(np.mean(loss_batch))
 
         if i % print_loss_every == 0 :
-            print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
+            print(f"{i+1}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
 
         # Early Stopping (#TODO on validation set ????)
-        # if i > early_stopping : 
-        #     if max(loss_valid_all[-early_stopping:]) < max(loss_valid_all):
-        #         print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
-        #         break
+        if i > early_stopping : 
+            if min(loss_valid_all[-early_stopping:]) < min(loss_valid_all):
+                print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
+                break
 
     model.eval()
 
