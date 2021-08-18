@@ -1,6 +1,7 @@
 from models.tuckert import TuckERT
 from models.tuckerttr import TuckERTTR
 from models.tuckercpd import TuckERCPD
+from models.tuckertnt import TuckERTNT
 
 import torch
 
@@ -49,8 +50,7 @@ def parse():
 
     return args
 
-def main(print_scores=True):
-    args = parse()
+def train_model_from_args(args,print_scores=True):
 
     data_dir = "data/" + args.dataset + "/"
     data = Data(data_dir=data_dir)
@@ -87,6 +87,11 @@ def main(print_scores=True):
         print(f"Test\n MRR : {test_mrr}, Hits@1 : {test_hits1}, Hits@3 : {test_hits3}, Hits@10 : {test_hits10}\n") 
 
     return [train_mrr,train_hits1,train_hits3,train_hits10,test_mrr,test_hits1,test_hits3,test_hits10]
+
+def main():
+    args = parse()
+    train_model_from_args(args,True)
+
 
 if __name__ == '__main__':
     main()
