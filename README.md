@@ -18,6 +18,6 @@ The follwing models are available :
 - TuckERCPD
 
 
-and the following dataset :
+and the following datasets :
 - icews14
 - icews05-15
