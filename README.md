@@ -14,6 +14,7 @@ python main.py --model TuckERTTR --dataset icews14 --n_iter 100 --batch_size 128
 
 The follwing models are available : 
 - TuckERT
+- TuckERTNT
 - TuCKERTTR
 - TuckERCPD
 
