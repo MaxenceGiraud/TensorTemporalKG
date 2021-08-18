@@ -28,7 +28,7 @@ class TuckERTNT(torch.nn.Module):
         self.T = torch.nn.Embedding(self.nt,dt)
 
         # Core tensor
-        self.W = torch.nn.Parameter(torch.tensor(np.random.uniform(-0.1, 0.1, (dr, de, de,dt)), dtype=torch.float, device=self.device, requires_grad=True))
+        self.W = torch.nn.Parameter(torch.tensor(np.random.uniform(-0.1, 0.1, (dr, de, dt,de)), dtype=torch.float, device=self.device, requires_grad=True))
 
         # "Special" Layers
         self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
@@ -59,24 +59,22 @@ class TuckERTNT(torch.nn.Module):
         W_mat = W_mat.view(-1, self.de, self.de*self.dt)
         x = torch.bmm(x, W_mat) 
 
+        # Mode 4 product with entity matrix 
+        x= x.view(-1,self.de)
+        x = torch.mm(x, self.E.weight.transpose(1,0))
+
         # Mode 3 product with time vector
         t = self.T(t_idx)
-        xt = x.view(-1, self.de,self.dt)
-        xt = torch.bmm(xt,t.view(*t.shape,-1))
+        xt = x.view(-1, self.dt,self.ne)
+        xt = torch.bmm(t.view(*t.shape,-1),xt)
+        xt = xt.view(-1,self.ne)
         
-        # Mode 4 product with entity matrix # TODO not repeat this operation (using maybe bmm or reshaping core tensor to do operations)
-        xt= xt.view(-1,self.de)
-        xt = torch.mm(xt, self.E.weight.transpose(1,0))
-
 
         ### Non temporal part
         # mode 3 product with identity matrix
         x = x.view(-1,self.dt)
         x = torch.mm(x,torch.ones(self.dt).view(self.dt,1)) 
-
-        # Mode 4 product with entity matrix
-        x= x.view(-1,self.de)
-        x = torch.mm(x, self.E.weight.transpose(1,0))
+        x = x.view(-1,self.ne)
 
 
         # Sum of the 2 models
