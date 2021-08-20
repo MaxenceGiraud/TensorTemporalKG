@@ -4,6 +4,7 @@ from load_data import Data
 import time
 from collections import defaultdict
 
+from metrics import get_ranks,compute_hits,compute_MRR
 
 def get_er_vocab(data):
     ''' Construct a dict of the data containing [E,R,T] as keys and target entities as values
@@ -39,7 +40,7 @@ def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
     return np.array(batch), targets
 
 
-def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=10,device='cpu'):
+def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=10,device='cpu'):
     ''' Train a temporal KG model
 
     Parameters
@@ -61,6 +62,8 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
     device : {'cpu','cuda'}
         On which device to do the computation
     '''
+
+    data_idxs,data_idxs_valid,data_idxs_test = data.train_data_idxs,data.valid_data_idxs,data.test_data_idxs
 
     if early_stopping == False : 
         early_stopping = n_iter + 1
@@ -85,6 +88,8 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
     model.train()
     losses = []
     loss_valid_all =[]
+    mrr = []
+    hits = []
 
     for i in range(n_iter):
         loss_batch =  []
@@ -124,15 +129,29 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
         
         losses.append(np.mean(loss_batch))
 
+        # Test metrics
+        test_ranks = get_ranks(model,torch.tensor(data_idxs_test),torch.tensor(data_idxs_test[:,-1]),device=device)
+        test_mrr = compute_MRR(test_ranks)
+        test_hits1 = compute_hits(test_ranks,1)
+        test_hits3 = compute_hits(test_ranks,3)
+        test_hits10 = compute_hits(test_ranks,10)
+
+        mrr.append(test_mrr)
+        hits.append([test_hits1,test_hits3,test_hits10])
+
         if i % print_loss_every == 0 :
-            print(f"{i+1}/{n_iter} loss = {losses[-1]}")#, valid loss = {loss_valid}")
+            print(f"{i+1}/{n_iter} loss = {losses[-1]}, valid loss = {np.mean(loss_valid)}, test MRR : {test_mrr}")
+        
 
         # Early Stopping 
-        # if i > early_stopping : 
-        #     if min(loss_valid_all[-early_stopping:]) < min(loss_valid_all):
-        #         print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
-        #         break
+        if i > early_stopping : 
+            if min(loss_valid_all[-early_stopping:]) > min(loss_valid_all):
+                print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {np.mean(loss_valid)} , test MRR : {test_mrr}")
+
+                model.eval()
+                best = np.argmin(loss_valid_all)
+                return model,[mrr[best],*hits[best]]  
 
     model.eval()
-
-    return model
+    best = np.argmin(loss_valid_all)
+    return model,[mrr[best],*hits[best]]  
