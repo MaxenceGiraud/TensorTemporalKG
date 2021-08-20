@@ -25,6 +25,7 @@ def grid_search(model,data,param_model_grid,learning_grid,file,cols):
     score_table = []
 
     for i_param_model in param_model_list : 
+        
         for i_learning_param in learning_list : 
 
             t_start = time.time()
@@ -41,20 +42,22 @@ def grid_search(model,data,param_model_grid,learning_grid,file,cols):
             print('mrr + hits')
             train_mrr = compute_MRR(train_ranks)
             train_hits1 = compute_hits(train_ranks,1)
-            train_hits3 = compute_hits(train_ranks,1)
-            train_hits10 = compute_hits(train_ranks,1)
+            train_hits3 = compute_hits(train_ranks,3)
+            train_hits10 = compute_hits(train_ranks,10)
 
             test_ranks = get_ranks(modeli,torch.tensor(data.test_data_idxs),torch.tensor(data.test_data_idxs[:,-1]),device=i_learning_param['device'])
             test_mrr = compute_MRR(test_ranks)
             test_hits1 = compute_hits(test_ranks,1)
-            test_hits3 = compute_hits(test_ranks,1)
-            test_hits10 = compute_hits(test_ranks,1)
+            test_hits3 = compute_hits(test_ranks,3)
+            test_hits10 = compute_hits(test_ranks,10)
 
             total_time = time.time()-t_start
 
             score_table.append([i_param_model,i_learning_param,train_mrr,train_hits1,train_hits3,train_hits10,test_mrr,test_hits1,test_hits3,test_hits10,total_time])
 
             pd.DataFrame(score_table,columns=cols).to_csv(file)
+
+
     
     
     return score_table
@@ -65,7 +68,7 @@ def main():
     data = Data() 
 
     DEVICE = 'cuda' #'cpu' or 'cuda'
-0
+
         cud = True
     else :
         cud = False 
