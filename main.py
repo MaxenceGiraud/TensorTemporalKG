@@ -64,7 +64,7 @@ def train_model_from_args(args,print_scores=True):
         device = 'cpu'
 
     print("\n----------------------------------- TRAINING -------------------------")
-    model = train_temporal(model,data.train_data_idxs,data.valid_data_idxs,device=device,n_iter=args.n_iter,learning_rate=args.learning_rate,batch_size=args.batch_size,early_stopping=args.early_stopping)
+    model = train_temporal(model,data,device=device,n_iter=args.n_iter,learning_rate=args.learning_rate,batch_size=args.batch_size,early_stopping=args.early_stopping)
 
 
     print("\n----------------------------------- Metrics --------------------------\n")

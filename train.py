@@ -47,8 +47,8 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
     -----------
     model : TuckER instance,
         TuckER model
-    data_idxs : list of triples,    
-        Train data idxs
+    data : obj from class Data:
+        contains train,test,valid data in the form of idx matrices
     n_iter : int,
         Number of iterations
     learning_rate : float,
@@ -129,12 +129,13 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
         
         losses.append(np.mean(loss_batch))
 
-        # Test metrics
-        test_ranks = get_ranks(model,torch.tensor(data_idxs_test),torch.tensor(data_idxs_test[:,-1]),device=device)
-        test_mrr = compute_MRR(test_ranks)
-        test_hits1 = compute_hits(test_ranks,1)
-        test_hits3 = compute_hits(test_ranks,3)
-        test_hits10 = compute_hits(test_ranks,10)
+        if early_stopping :
+            # Test metrics
+            test_ranks = get_ranks(model,torch.tensor(data_idxs_test),torch.tensor(data_idxs_test[:,-1]),device=device)
+            test_mrr = compute_MRR(test_ranks)
+            test_hits1 = compute_hits(test_ranks,1)
+            test_hits3 = compute_hits(test_ranks,3)
+            test_hits10 = compute_hits(test_ranks,10)
 
         mrr.append(test_mrr)
         hits.append([test_hits1,test_hits3,test_hits10])
@@ -145,7 +146,7 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
 
         # Early Stopping 
         if i > early_stopping : 
-            if min(loss_valid_all[-early_stopping:]) > min(loss_valid_all):
+            if min(loss_valid_all[-early_stopping:]) > min(loss_valid_all) or min(loss_valid_all[-early_stopping:]) > min(loss_valid_all[:-early_stopping]) - 5e-8:
                 print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {np.mean(loss_valid)} , test MRR : {test_mrr}")
 
                 model.eval()
@@ -153,5 +154,8 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
                 return model,[mrr[best],*hits[best]]  
 
     model.eval()
-    best = np.argmin(loss_valid_all)
-    return model,[mrr[best],*hits[best]]  
+
+    if early_stopping : 
+        best = np.argmin(loss_valid_all)
+        return model,[mrr[best],*hits[best]]  
+    else : return model

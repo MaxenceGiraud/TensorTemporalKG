@@ -16,6 +16,7 @@ import time
 
 import gc
 def get_gc(stop=True):
+    ''' Print objects in the garbage collector '''
     for obj in gc.get_objects():
         try:
             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
@@ -24,7 +25,7 @@ def get_gc(stop=True):
             pass
     
     if stop : 
-        _ = input("\n Pres enter to continue \n")
+        _ = input("\n Press enter to continue \n")
 
 
 def grid_search(model,data,param_model_grid,learning_grid,file,cols):
@@ -39,6 +40,8 @@ def grid_search(model,data,param_model_grid,learning_grid,file,cols):
     for i_param_model in param_model_list : 
         
         for i_learning_param in learning_list : 
+
+            print(f"{i_param_model}\n{i_learning_param}\n")
 
             t_start = time.time()
 
@@ -95,10 +98,10 @@ def main():
 
 
     # Parameter Grid to test
-    # parameter_grid_tr = {'de':np.linspace(40,400,4,dtype=int),'dr':[20,50],'dt':[20,50],'ranks':[10],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
-    # parameter_grid_cpd = {'de':np.linspace(40,300,4,dtype=int),'dr':[20,50],'dt':[20,50],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
+    parameter_grid_tr = {'de':np.linspace(50,300,3,dtype=int),'dr':[40],'dt':[40],'ranks':[10],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
+    parameter_grid_cpd = {'de':np.linspace(50,300,3,dtype=int),'dr':[40],'dt':[40],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
 
-    # learning_param_grid = {'learning_rate':[0.005,0.001],'n_iter':[100],'batch_size':[128],'device':[DEVICE]} 
+    learning_param_grid = {'learning_rate':[0.003,0.002,0.001,0.0008,0.0005,0.0002,0.0001],'n_iter':[400],'batch_size':[128],'device':[DEVICE]} 
 
 
     # cols = ["Model Parameters","Learning Parameters","Train MRR", "Train Hits@1", "Train Hits@3", "Train Hits@10","Test MRR", "Test Hits@1", "Test Hits@3", "Test Hits@10","Time"]
@@ -107,16 +110,16 @@ def main():
 
     ### TESTS ##############################
     # parameter_grid_tr = {'de':[300],'dr':[50],'dt':[50],'ranks':[10],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
-    parameter_grid_cpd = {'de':[300],'dr':[50],'dt':[50],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
-    learning_param_grid = {'learning_rate':[0.005],'n_iter':[100],'batch_size':[128],'device':[DEVICE]}
+    # parameter_grid_cpd = {'de':[20],'dr':[10],'dt':[10],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
+    # learning_param_grid = {'learning_rate':[0.00001],'n_iter':[100],'batch_size':[128],'device':[DEVICE]}
     ##############################
 
 
-    # print("------------------------------------------------------\n Traning TuckER with Tensor Ring core decomposition")
-    # scores_tr = grid_search(TuckERTTR,data,parameter_grid_tr,learning_param_grid,file='results/TR.csv',cols=cols)  
-
-    print("------------------------------------------------------\n Training TuckER with CPD on core")
+    print("-------------------------------------------------------------------\n Training TuckER with CPD on core \n--------------------------------------------------------------------")
     scores_cpd = grid_search(TuckERCPD,data,parameter_grid_cpd,learning_param_grid,file="results/CPD.csv",cols=cols)
+
+    print("-------------------------------------------------------------------\n Traning TuckER with Tensor Ring core decomposition \n-------------------------------------------------------------------")
+    scores_tr = grid_search(TuckERTTR,data,parameter_grid_tr,learning_param_grid,file='results/TR.csv',cols=cols) 
 
 
 if __name__ == "__main__":
