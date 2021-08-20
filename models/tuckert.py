@@ -31,6 +31,8 @@ class TuckERT(torch.nn.Module):
         # Core tensor
         self.W = torch.nn.Parameter(torch.tensor(np.random.uniform(-0.1, 0.1, (dr, de, de,dt)), dtype=torch.float, device=self.device, requires_grad=True))
 
+
+        # "Specia"l layers
         self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
         self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
         self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
@@ -45,26 +47,27 @@ class TuckERT(torch.nn.Module):
         xavier_normal_(self.T.weight.data)
 
     def forward(self, e1_idx, r_idx,t_idx):
+        # Mode 1 product with entity vector
         e1 = self.E(e1_idx)
         x = self.bne(e1)
         x = self.input_dropout(x)
         x = e1
         x = x.view(-1, 1, self.de)
 
+        # Mode 2 product with relation vector
         r = self.R(r_idx)
         W_mat = torch.mm(r, self.W.view(r.size(1), -1))
         W_mat = W_mat.view(-1, self.de, self.de*self.dt)
-        # W_mat = self.hidden_dropout1(W_mat)
         x = torch.bmm(x, W_mat) 
 
+        # Mode 3 product with time vector
         t = self.T(t_idx)
         x = x.view(-1, self.de,self.dt)
         x = torch.bmm(x,t.view(*t.shape,-1))
-
-        # x = self.bne(x)
-        # x = self.hidden_dropout2(x)
-
+        
+        # Mode 4 product with entity matrix
         x= x.view(-1,self.de)
         x = torch.mm(x, self.E.weight.transpose(1,0))
+
         pred = torch.sigmoid(x)
         return pred
