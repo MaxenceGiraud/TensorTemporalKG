@@ -19,7 +19,7 @@ def get_ranks(model,torch_data_idxs,targets,batch_size=128,device='cpu'):
 
     for i in range(torch_data_idxs.shape[0]//batch_size):
         data_batch = torch_data_idxs[i*batch_size:(i+1)*batch_size].to(device)
-        predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2]).cpu()
+        predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2]).detach().cpu().numpy()
 
         _, sort_idxs = torch.sort(predictions, dim=1, descending=True)
         for j in range(predictions.shape[0]):
@@ -27,7 +27,7 @@ def get_ranks(model,torch_data_idxs,targets,batch_size=128,device='cpu'):
             ranks.append(rank+1)
 
     data_batch = torch_data_idxs[(i+1)*batch_size:].to(device)
-    predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2]).cpu()
+    predictions = model.forward(data_batch[:,0],data_batch[:,1],data_batch[:,2]).detach().cpu().numpy()
 
     _, sort_idxs = torch.sort(predictions, dim=1, descending=True)
     for j in range(predictions.shape[0]):

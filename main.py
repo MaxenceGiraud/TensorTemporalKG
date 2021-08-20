@@ -73,14 +73,14 @@ def train_model_from_args(args,print_scores=True):
     train_ranks = get_ranks(model,torch.tensor(data.train_data_idxs),torch.tensor(data.train_data_idxs[:,-1]),device=device,batch_size=args.batch_size)
     train_mrr = compute_MRR(train_ranks)
     train_hits1 = compute_hits(train_ranks,1)
-    train_hits3 = compute_hits(train_ranks,1)
-    train_hits10 = compute_hits(train_ranks,1)
+    train_hits3 = compute_hits(train_ranks,3)
+    train_hits10 = compute_hits(train_ranks,10)
 
     test_ranks = get_ranks(model,torch.tensor(data.test_data_idxs),torch.tensor(data.test_data_idxs[:,-1]),device=device,batch_size=args.batch_size)
     test_mrr = compute_MRR(test_ranks)
     test_hits1 = compute_hits(test_ranks,1)
-    test_hits3 = compute_hits(test_ranks,1)
-    test_hits10 = compute_hits(test_ranks,1)
+    test_hits3 = compute_hits(test_ranks,3)
+    test_hits10 = compute_hits(test_ranks,10)
 
     if print_scores : 
         print(f"Train\n MRR : {train_mrr}, Hits@1 : {train_hits1}, Hits@3 : {train_hits3}, Hits@10 : {train_hits10}\n") 
@@ -95,5 +95,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
