@@ -91,7 +91,7 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
 
         pred_valid = model.forward(torch.tensor(data_idxs_valid[:,0]).to(device),torch.tensor(data_idxs_valid[:,1]).to(device),torch.tensor(data_idxs_valid[:,2]).to(device))
         loss_valid = model.loss(pred_valid,targets_valid)
-        loss_valid_all.append(loss_valid)
+        loss_valid_all.append(loss_valid.item())
 
         for j in range(0, len(er_vocab_pairs), batch_size):
             data_batch, targets = get_batch(batch_size,er_vocab, er_vocab_pairs, j,n_entities=n_entities,device=device)
@@ -114,7 +114,7 @@ def train_temporal(model,data_idxs,data_idxs_valid,n_iter=200,learning_rate=0.00
         if i % print_loss_every == 0 :
             print(f"{i+1}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
 
-        # Early Stopping (#TODO on validation set ????)
+        # Early Stopping 
         if i > early_stopping : 
             if min(loss_valid_all[-early_stopping:]) < min(loss_valid_all):
                 print(f"{i}/{n_iter} loss = {losses[-1]}, valid loss = {loss_valid}")
