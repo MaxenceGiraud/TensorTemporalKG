@@ -40,7 +40,7 @@ def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
     return np.array(batch), targets
 
 
-def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=10,device='cpu'):
+def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=20,device='cpu'):
     ''' Train a temporal KG model
 
     Parameters
@@ -95,22 +95,6 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
         loss_batch =  []
         loss_valid = []
 
-        # Compute validation loss
-        for j in range(0,len(targets_valid)//32):
-            data_j = torch.tensor(data_idxs_valid[j*32:(j+1)*32]).to(device)
-            pred_valid = model.forward(data_j[:,0],data_j[:,1],data_j[:,2]).detach()
-            loss_valid_j = model.loss(pred_valid,targets_valid[j*32:(j+1)*32]).item()
-            loss_valid.append(loss_valid_j)
-        
-        data_j = torch.tensor(data_idxs_valid[(j+1)*32:]).to(device)
-        pred_valid = model.forward(data_j[:,0],data_j[:,1],data_j[:,2]).detach()
-        loss_valid_j = model.loss(pred_valid,targets_valid[(j+1)*32:]).item()
-        loss_valid.append(loss_valid_j)
-        
-
-
-        loss_valid_all.append(np.mean(loss_valid))
-
         for j in range(0, len(er_vocab_pairs), batch_size):
             data_batch, targets = get_batch(batch_size,er_vocab, er_vocab_pairs, j,n_entities=n_entities,device=device)
 
@@ -128,6 +112,22 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
             loss_batch.append(loss.item())
         
         losses.append(np.mean(loss_batch))
+
+
+        # Compute validation loss, do using loss or MRR ???
+        for j in range(0,len(targets_valid)//32):
+            data_j = torch.tensor(data_idxs_valid[j*32:(j+1)*32]).to(device)
+            pred_valid = model.forward(data_j[:,0],data_j[:,1],data_j[:,2]).detach()
+            loss_valid_j = model.loss(pred_valid,targets_valid[j*32:(j+1)*32]).item()
+            loss_valid.append(loss_valid_j)
+        
+        data_j = torch.tensor(data_idxs_valid[(j+1)*32:]).to(device)
+        pred_valid = model.forward(data_j[:,0],data_j[:,1],data_j[:,2]).detach()
+        loss_valid_j = model.loss(pred_valid,targets_valid[(j+1)*32:]).item()
+        loss_valid.append(loss_valid_j)
+        
+        loss_valid_all.append(np.mean(loss_valid))
+
 
         if early_stopping :
             # Test metrics

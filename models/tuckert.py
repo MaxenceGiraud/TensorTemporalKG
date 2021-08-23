@@ -4,13 +4,10 @@ from torch.nn.init import xavier_normal_
 
 
 class TuckERT(torch.nn.Module):
-    def __init__(self, d, de, dr,dt,cuda=False, **kwargs):
+    def __init__(self, d, de, dr,dt,device="cpu", **kwargs):
         super(TuckERT, self).__init__()
 
-        if cuda == True :
-            self.device = 'cuda'
-        else :
-            self.device  = 'cpu'
+        self.device = device
 
         # Embeddings dimensionality
         self.de = de

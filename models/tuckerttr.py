@@ -4,13 +4,10 @@ from torch.nn.init import xavier_normal_
 
 
 class TuckERTTR(torch.nn.Module):
-    def __init__(self, d, de, dr,dt,ranks,cuda=False, **kwargs):
+    def __init__(self, d, de, dr,dt,ranks,device='cpu', **kwargs):
         super(TuckERTTR, self).__init__()
 
-        if cuda == True :
-            self.device = 'cuda'
-        else :
-            self.device  = 'cpu'
+        self.device = device
 
         # Embeddings dimensionality
         self.de = de
@@ -40,16 +37,19 @@ class TuckERTTR(torch.nn.Module):
         self.Zlist = torch.nn.ParameterList([torch.nn.Parameter(torch.tensor(np.random.uniform(-1e-1, 1e-1, (ranks[i], ni[i], ranks[i+1])), dtype=torch.float, requires_grad=True).to(self.device)) for i in range(4)])
 
 
-        # "Special" Layers
+        # dropout Layers
         self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
         self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
         self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
-        self.loss = torch.nn.BCELoss()
-
-        self.bne = torch.nn.BatchNorm1d(de)
-        self.bnr = torch.nn.BatchNorm1d(dr)
-        self.bnt = torch.nn.BatchNorm1d(dt)
         
+        # batchnorm layers
+        self.bne = torch.nn.BatchNorm1d(de)
+        self.bn1 = torch.nn.BatchNorm1d() # TODO
+        self.bn2 = torch.nn.BatchNorm1d()
+        self.bn3 = torch.nn.BatchNorm1d()
+
+        # loss
+        self.loss = torch.nn.BCELoss()        
 
     def init(self):
         xavier_normal_(self.E.weight.data)
@@ -64,14 +64,12 @@ class TuckERTTR(torch.nn.Module):
 
         # Mode 1 product with entity vector
         e1 = self.E(e1_idx)
-        # x = self.bne(e1)
-        # x = self.input_dropout(x)
-        x = e1
+        x = self.bne(e1)
+        x = self.input_dropout(x)
         x = x.view(-1, 1, self.de)
 
         # Mode 2 product with relation vector
         r = self.R(r_idx)
-        # r = self.bnr(r)
         W_mat = torch.mm(r, W.view(self.dr, -1))
         W_mat = W_mat.view(-1, self.de, self.de*self.dt)
         # W_mat = self.hidden_dropout1(W_mat)

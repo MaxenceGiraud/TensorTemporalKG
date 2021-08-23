@@ -90,18 +90,13 @@ def main():
     # load data and preprocess
     data = Data() 
 
-    DEVICE = 'cuda' #'cpu' or 'cuda'
-    if DEVICE == 'cuda':
-        cud = True
-    else :
-        cud = False 
-
+    device = 'cuda' #'cpu' or 'cuda'
 
     # Parameter Grid to test
-    parameter_grid_tr = {'de':np.linspace(50,300,3,dtype=int),'dr':[40],'dt':[40],'ranks':[10],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
-    parameter_grid_cpd = {'de':np.linspace(50,300,3,dtype=int),'dr':[40],'dt':[40],'cuda':[cud],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
+    parameter_grid_tr = {'de':np.linspace(50,300,3,dtype=int),'dr':[40],'dt':[40],'ranks':[10],'device':[device],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
+    parameter_grid_cpd = {'de':np.linspace(50,300,3,dtype=int),'dr':[40],'dt':[40],'device':[device],"input_dropout":[0.],"hidden_dropout1":[0.],"hidden_dropout2":[0.]}
 
-    learning_param_grid = {'learning_rate':[0.003,0.002,0.001,0.0008,0.0005,0.0002,0.0001],'n_iter':[400],'batch_size':[128],'device':[DEVICE]} 
+    learning_param_grid = {'learning_rate':[0.003,0.002,0.001,0.0008,0.0005,0.0002,0.0001],'n_iter':[400],'batch_size':[128],'device':[device]} 
 
 
     # cols = ["Model Parameters","Learning Parameters","Train MRR", "Train Hits@1", "Train Hits@3", "Train Hits@10","Test MRR", "Test Hits@1", "Test Hits@3", "Test Hits@10","Time"]
