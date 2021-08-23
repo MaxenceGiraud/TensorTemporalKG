@@ -45,8 +45,8 @@ def parse():
                     help="Dropout after the second hidden layer.")
     parser.add_argument("--hidden_dropout3", type=float, default=0., nargs="?",
                     help="Dropout after the third hidden layer.")
-    # parser.add_argument("--label_smoothing", type=float, default=0.1, nargs="?",
-                    # help="Amount of label smoothing.")
+    parser.add_argument("--label_smoothing", type=float, default=0., nargs="?",
+                    help="Amount of label smoothing.")
 
     args = parser.parse_args()
 

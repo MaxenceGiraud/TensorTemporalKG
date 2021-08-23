@@ -40,7 +40,7 @@ def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
     return np.array(batch), targets
 
 
-def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=20,device='cpu'):
+def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,print_loss_every=1,early_stopping=20,label_smoothing=0.,device='cpu'):
     ''' Train a temporal KG model
 
     Parameters
@@ -83,6 +83,7 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
     for idx,ent_id in enumerate(data_idxs_valid[:,-1]):
         targets_valid[idx,ent_id] = 1
     targets_valid = torch.FloatTensor(targets_valid).to(device)
+    targets_valid = ((1.0-label_smoothing)*targets_valid) + (1.0/targets_valid.size(1))    
 
     # Init params
     model.train()
@@ -97,6 +98,7 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
 
         for j in range(0, len(er_vocab_pairs), batch_size):
             data_batch, targets = get_batch(batch_size,er_vocab, er_vocab_pairs, j,n_entities=n_entities,device=device)
+            targets = ((1.0-label_smoothing)*targets) + (1.0/targets.size(1))          
 
             opt.zero_grad()
             e1_idx = torch.tensor(data_batch[:,0]).to(device)
