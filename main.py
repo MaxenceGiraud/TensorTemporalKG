@@ -2,6 +2,8 @@ from models.tuckert import TuckERT
 from models.tuckerttr import TuckERTTR
 from models.tuckercpd import TuckERCPD
 from models.tuckertnt import TuckERTNT
+from models.tuckert_tt import TuckERTTT
+
 
 import torch
 

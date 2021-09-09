@@ -3,6 +3,7 @@ import torch
 from models.tuckert import TuckERT
 from models.tuckerttr import TuckERTTR
 from models.tuckercpd import TuckERCPD
+from models.tuckert_tt import TuckERTTT
 from train import train_temporal
 
 from load_data import Data
