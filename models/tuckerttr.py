@@ -57,33 +57,27 @@ class TuckERTTR(torch.nn.Module):
         xavier_normal_(self.T.weight.data)
 
     def forward(self, e1_idx, r_idx,t_idx):
+        
+        e1 = self.E(e1_idx)
+        r = self.R(r_idx)
+        t = self.T(t_idx)
 
-        # Recover core tensor from TR (compute the trace of all the tensors)
+        # Recover core tensor from TR (compute the trace of hadamart (element wise) product of all tensors)
         W = torch.einsum('aib,bjc,ckd,dla->ijkl', list(self.Zlist))
         W = W.view(self.dr, self.de, self.de, self.dt)
 
         # Mode 1 product with entity vector
-        e1 = self.E(e1_idx)
-        # x = self.bne(e1)
-        # x = self.input_dropout(x)
         x = e1
         x = x.view(-1, 1, self.de)
 
         # Mode 2 product with relation vector
-        r = self.R(r_idx)
-        # r = self.bnr(r)
         W_mat = torch.mm(r, W.view(self.dr, -1))
         W_mat = W_mat.view(-1, self.de, self.de*self.dt)
-        # W_mat = self.hidden_dropout1(W_mat)
         x = torch.bmm(x, W_mat) 
 
         # Mode 3 product with temporal vector
-        t = self.T(t_idx)
-        # t = self.bnt(t)
         x = x.view(-1, self.de,self.dt)
         x = torch.bmm(x,t.view(*t.shape,-1))
-
-        # x = self.hidden_dropout2(x)
 
         # Mode 4 product with entity matrix
         x= x.view(-1,self.de)
