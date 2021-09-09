@@ -1,16 +1,14 @@
 import numpy as np
 import torch
 from torch.nn.init import xavier_normal_
+from .instantaneous_multiclass_loss import instantaneous_multiclass_loss
 
 
 class TuckERCPD(torch.nn.Module):
-    def __init__(self, d, de, dr,dt,cuda=False, **kwargs):
+    def __init__(self, d, de, dr,dt,device="cpu", **kwargs):
         super(TuckERCPD, self).__init__()
 
-        if cuda == True :
-            self.device = 'cuda'
-        else :
-            self.device  = 'cpu'
+        self.device = device
 
         # Embeddings dimensionality
         self.de = de
@@ -41,16 +39,20 @@ class TuckERCPD(torch.nn.Module):
         self.Flist = torch.nn.ParameterList([torch.nn.Parameter(torch.tensor(np.random.uniform(-1e-1, 1e-1, (d,self.p)), dtype=torch.float, requires_grad=True).to(self.device)) for d in [self.dr, self.de, self.de, self.dt]])
 
 
-        # "Special" Layers
-        # self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
-        # self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
-        # self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
-        self.loss = torch.nn.BCELoss()
+        # Dropout Layers
+        self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
+        self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
+        self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
+        self.hidden_dropout3 = torch.nn.Dropout(kwargs["hidden_dropout3"])
 
-        # self.bne = torch.nn.BatchNorm1d(de)
-        # self.bnr = torch.nn.BatchNorm1d(dr)
-        # self.bnt = torch.nn.BatchNorm1d(dt)
-        
+        # batchnorm layers
+        self.bne = torch.nn.BatchNorm1d(self.de)
+        self.bnp3 = torch.nn.BatchNorm1d(self.p**3)
+        self.bnp2 = torch.nn.BatchNorm1d(self.p**2)
+        self.bnp = torch.nn.BatchNorm1d(self.p)
+
+        # Loss
+        self.loss = torch.nn.BCELoss()
 
     def init(self):
         xavier_normal_(self.E.weight.data)
@@ -64,6 +66,9 @@ class TuckERCPD(torch.nn.Module):
         
         # Select corresponding embeddings
         e1 = self.E(e1_idx)
+        e1 = self.bne(e1)
+        e1 = self.input_dropout(e1)
+
         r = self.R(r_idx)
         t = self.T(t_idx)
 
@@ -74,17 +79,23 @@ class TuckERCPD(torch.nn.Module):
         FE = torch.mm(self.E.weight,self.Flist[2])
         ft = torch.mm(t,self.Flist[3])
         
-        # Recover tensor
-        x = fe1.view(-1,1,self.p)
+        ### Recover tensor
+
+        # Mode 1 product with intermediate relaton vecot
         x = torch.mm(fr,self.I.view(self.p,-1))
+        x = self.bnp3(x)
+        x = self.hidden_dropout1(x)
 
         x = x.view(-1,self.p,self.p**2)
-        x = torch.bmm(fe1.view(-1,1,self.p),x)
+        x = torch.bmm(fe1.view(-1,1,self.p),x).view(-1,self.p**2)
+        x = self.bnp2(x)
+        x = self.hidden_dropout2(x)
 
         x = x.view(-1,self.p,self.p)
-        x = torch.bmm(x,ft.view(*ft.shape,-1))
+        x = torch.bmm(x,ft.view(*ft.shape,-1)).view(-1,self.p)
+        x = self.bnp(x)
+        x = self.hidden_dropout3(x)
 
-        x = x.view(-1,self.p)
         x = torch.mm(x,FE.transpose(1,0))
 
         # Turn results into "probabilities"
