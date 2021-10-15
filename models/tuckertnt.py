@@ -4,7 +4,7 @@ from torch.nn.init import xavier_normal_
 
 
 class TuckERTNT(torch.nn.Module):
-    def __init__(self, d, de, dr,dt,device="cpu", **kwargs):
+    def __init__(self, d, de, dr,dt,device="cpu", input_dropout=0.,hidden_dropout1=0.,hidden_dropout2=0., **kwargs):
         super(TuckERTNT, self).__init__()
 
         self.device = device
@@ -28,9 +28,9 @@ class TuckERTNT(torch.nn.Module):
         self.W = torch.nn.Parameter(torch.tensor(np.random.uniform(-0.1, 0.1, (dr, de, dt,de)), dtype=torch.float, device=self.device, requires_grad=True))
 
         # "Special" Layers
-        self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
-        self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
-        self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
+        self.input_dropout = torch.nn.Dropout(input_dropout)
+        self.hidden_dropout1 = torch.nn.Dropout(hidden_dropout1)
+        self.hidden_dropout2 = torch.nn.Dropout(hidden_dropout2)
         self.loss = torch.nn.BCELoss()
 
         self.bne = torch.nn.BatchNorm1d(de)

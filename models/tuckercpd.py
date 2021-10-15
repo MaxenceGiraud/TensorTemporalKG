@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from torch.nn.init import xavier_normal_
-from .instantaneous_multiclass_loss import instantaneous_multiclass_loss
 
 
 class TuckERCPD(torch.nn.Module):

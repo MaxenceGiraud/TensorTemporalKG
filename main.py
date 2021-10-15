@@ -2,6 +2,7 @@ from models.tuckert import TuckERT
 from models.tuckerttr import TuckERTTR
 from models.tuckercpd import TuckERCPD
 from models.tuckertnt import TuckERTNT
+from models.tuckert_tt import TuckERTTT
 
 import torch
 
@@ -15,8 +16,8 @@ import argparse
 
 def parse():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="TuckERCPD", nargs="?",
-                    help="Which model to use: TuckERT, TuckERTTR,TuckERCPD.")
+    parser.add_argument("--model", type=str, default="TuckERT", nargs="?",
+                    help="Which model to use: TuckERT,TucERTNT, TuckERTTR,TuckERCPD.")
     parser.add_argument("--dataset", type=str, default="icews14", nargs="?",
                     help="Which dataset to use: icews14, icews05-15.")
     parser.add_argument("--n_iter", type=int, default=200, nargs="?",

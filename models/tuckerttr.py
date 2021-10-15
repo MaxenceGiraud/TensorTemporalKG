@@ -4,7 +4,7 @@ from torch.nn.init import xavier_normal_
 
 
 class TuckERTTR(torch.nn.Module):
-    def __init__(self, d, de, dr,dt,ranks,device='cpu', **kwargs):
+    def __init__(self, d, de, dr,dt,ranks,device='cpu', input_dropout=0.,hidden_dropout1=0.,hidden_dropout2=0., **kwargs):
         super(TuckERTTR, self).__init__()
 
         self.device = device
@@ -38,9 +38,9 @@ class TuckERTTR(torch.nn.Module):
 
 
         # dropout Layers
-        self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
-        self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
-        self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
+        self.input_dropout = torch.nn.Dropout(input_dropout)
+        self.hidden_dropout1 = torch.nn.Dropout(hidden_dropout1)
+        self.hidden_dropout2 = torch.nn.Dropout(hidden_dropout2)
         
         # batchnorm layers
         self.bne = torch.nn.BatchNorm1d(de)
