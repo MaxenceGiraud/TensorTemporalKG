@@ -6,23 +6,28 @@ from collections import defaultdict
 
 from metrics import get_ranks,compute_hits,compute_MRR
 
-def get_er_vocab(data):
+def get_ert_vocab(data):
     ''' Construct a dict of the data containing [E,R,T] as keys and target entities as values
     '''
 
-    er_vocab = defaultdict(list)
+    ert_vocab = defaultdict(list)
     for quad in data:
-        er_vocab[(quad[0], quad[1],quad[2])].append(quad[3])
-    return er_vocab
+        ert_vocab[(quad[0], quad[1],quad[2])].append(quad[3])
+        ert_vocab[(quad[3], quad[1],quad[2])].append(quad[0]) # reverse fact
+    return ert_vocab
 
-def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
+def get_batch(batch_size,ert_vocab, ert_vocab_pairs, idx,n_entities,device='cpu'):
     ''' Return a batch of data for training
+
+    Parameters
+    ----------
+
     batch_size : int,
         .
-    er_vocab : dict,
+    ert_vocab : dict,
         Dict containing [E,R,T] as keys and target entities as values
-    er_vocab_pairs : list,
-        list of er_vocab keys
+    ert_vocab_pairs : list,
+        list of ert_vocab keys
     idx: int,
         Batch number 
     n_entities : int, 
@@ -31,12 +36,13 @@ def get_batch(batch_size,er_vocab, er_vocab_pairs, idx,n_entities,device='cpu'):
         On which device to do the computation
     '''
 
-    batch = er_vocab_pairs[idx:idx+batch_size]
-    # targets = np.zeros((len(batch), len(data.entities)))
+    batch = ert_vocab_pairs[idx:idx+batch_size]
     targets = np.zeros((len(batch), n_entities))
+
     for idx, pair in enumerate(batch):
-        targets[idx, er_vocab[pair]] = 1.
+        targets[idx, ert_vocab[pair]] = 1.
     targets = torch.FloatTensor(targets).to(device)
+
     return np.array(batch), targets
 
 
@@ -71,12 +77,12 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
     model.init()
     opt = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    er_vocab = get_er_vocab(data_idxs)
-    er_vocab = {k: v for (k, v) in er_vocab.items() if (type(k) is list or type(k) is tuple) and len(k) == 3}
+    ert_vocab = get_ert_vocab(data_idxs)
+    ert_vocab = {k: v for (k, v) in ert_vocab.items() if (type(k) is list or type(k) is tuple) and len(k) == 3}
 
     n_entities = int(max(data_idxs[:,0])+1)
 
-    er_vocab_pairs = list(er_vocab.keys())
+    ert_vocab_pairs = list(ert_vocab.keys())
 
     # Validation set for early stopping
     targets_valid = np.zeros((data_idxs_valid.shape[0],n_entities))
@@ -97,8 +103,10 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
         loss_batch =  []
         loss_valid = []
 
-        for j in range(0, len(er_vocab_pairs), batch_size):
-            data_batch, targets = get_batch(batch_size,er_vocab, er_vocab_pairs, j,n_entities=n_entities,device=device)
+        for j in range(0, len(ert_vocab_pairs), batch_size):
+            # get the current batch
+            data_batch, targets = get_batch(batch_size,ert_vocab, ert_vocab_pairs, j,n_entities=n_entities,device=device) 
+
             if label_smoothing :
                 targets = ((1.0-label_smoothing)*targets) + (1.0/targets.size(1))          
 
@@ -110,14 +118,14 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
             predictions = model.forward(e1_idx, r_idx,t_idx)
             loss = model.loss(predictions, targets)
 
-            
             loss.backward()
             opt.step()
+
             loss_batch.append(loss.item())
         losses.append(np.mean(loss_batch))
 
 
-        # Compute validation loss, do using loss or MRR ???
+        # Compute validation loss
         for j in range(0,len(targets_valid)//32):
             data_j = torch.tensor(data_idxs_valid[j*32:(j+1)*32]).to(device)
             pred_valid = model.forward(data_j[:,0],data_j[:,1],data_j[:,2]).detach()
@@ -131,14 +139,12 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
         
         loss_valid_all.append(np.mean(loss_valid))
 
-
-        if early_stopping :
-            # Test metrics
-            test_ranks = get_ranks(model,torch.tensor(data_idxs_test),torch.tensor(data_idxs_test[:,-1]),device=device)
-            test_mrr = compute_MRR(test_ranks)
-            test_hits1 = compute_hits(test_ranks,1)
-            test_hits3 = compute_hits(test_ranks,3)
-            test_hits10 = compute_hits(test_ranks,10)
+        # Test metrics
+        test_ranks = get_ranks(model,torch.tensor(data_idxs_test),torch.tensor(data_idxs_test[:,-1]),device=device)
+        test_mrr = compute_MRR(test_ranks)
+        test_hits1 = compute_hits(test_ranks,1)
+        test_hits3 = compute_hits(test_ranks,3)
+        test_hits10 = compute_hits(test_ranks,10)
 
         mrr.append(test_mrr)
         hits.append([test_hits1,test_hits3,test_hits10])
@@ -146,7 +152,6 @@ def train_temporal(model,data,n_iter=200,learning_rate=0.0005,batch_size=128,pri
         if i % print_loss_every == 0 :
             print(f"{i+1}/{n_iter} loss = {losses[-1]}, valid loss = {np.mean(loss_valid)}, test MRR : {test_mrr}")
         
-
         # Early Stopping 
         if i > early_stopping : 
             if min(loss_valid_all[-early_stopping:]) > min(loss_valid_all) or min(loss_valid_all[-early_stopping:]) > min(loss_valid_all[:-early_stopping]) - 5e-8:
