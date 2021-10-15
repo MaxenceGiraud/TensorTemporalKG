@@ -3,12 +3,12 @@ import torch
 from torch.nn.init import xavier_normal_
 
 
-class TuckERTTR(torch.nn.Module):
-    def __init__(self, d, de, dr,dt,ranks,device='cpu', input_dropout=0.,hidden_dropout1=0.,hidden_dropout2=0., **kwargs):
-        super(TuckERTTR, self).__init__()
+class TuckERTTT(torch.nn.Module):
+    def __init__(self, d, de, dr,dt,ranks,device='cpu', **kwargs):
+        super(TuckERTTT, self).__init__()
 
         self.device = device
-
+        
         # Embeddings dimensionality
         self.de = de
         self.dr = dr
@@ -24,32 +24,35 @@ class TuckERTTR(torch.nn.Module):
         self.R = torch.nn.Embedding(self.nr, dr).to(self.device)
         self.T = torch.nn.Embedding(self.nt,dt).to(self.device)
 
+        ## Core Tensor
         # Size of Tensor Ring decompostion tensors
         ni = [self.dr, self.de, self.de, self.dt]
         if isinstance(ranks,int) or isinstance(ranks,np.int64):
-            ranks = [ranks for _ in range(5)]
-        elif isinstance(ranks,list) and len(ranks)==5:
+            ranks = [ranks for _ in range(3)]
+        elif isinstance(ranks,list) and len(ranks)==3:
             pass
         else : 
-            raise TypeError('ranks must be int or list of len 5')
+            raise TypeError('ranks must be int or list of len 3')
         
-        # List of tensors of the TR
-        self.Zlist = torch.nn.ParameterList([torch.nn.Parameter(torch.tensor(np.random.uniform(-1e-1, 1e-1, (ranks[i], ni[i], ranks[i+1])), dtype=torch.float, requires_grad=True).to(self.device)) for i in range(4)])
+        list_tmp = [1]
+        list_tmp.extend(ranks)
+        list_tmp.append(1)
+        ranks = list_tmp
+        
+        # List of tensors of the tensor train 
+        self.Glist = torch.nn.ParameterList([torch.nn.Parameter(torch.tensor(np.random.uniform(-1e-1, 1e-1, (ranks[i], ni[i], ranks[i+1])), dtype=torch.float, requires_grad=True).to(self.device)) for i in range(4)])
 
 
-        # dropout Layers
-        self.input_dropout = torch.nn.Dropout(input_dropout)
-        self.hidden_dropout1 = torch.nn.Dropout(hidden_dropout1)
-        self.hidden_dropout2 = torch.nn.Dropout(hidden_dropout2)
-        
-        # batchnorm layers
+        # "Special" Layers
+        self.input_dropout = torch.nn.Dropout(kwargs["input_dropout"])
+        self.hidden_dropout1 = torch.nn.Dropout(kwargs["hidden_dropout1"])
+        self.hidden_dropout2 = torch.nn.Dropout(kwargs["hidden_dropout2"])
+        self.loss = torch.nn.BCELoss()
+
         self.bne = torch.nn.BatchNorm1d(de)
-        self.bn1 = torch.nn.BatchNorm1d() # TODO
-        self.bn2 = torch.nn.BatchNorm1d()
-        self.bn3 = torch.nn.BatchNorm1d()
-
-        # loss
-        self.loss = torch.nn.BCELoss()        
+        self.bnr = torch.nn.BatchNorm1d(dr)
+        self.bnt = torch.nn.BatchNorm1d(dt)
+        
 
     def init(self):
         xavier_normal_(self.E.weight.data)
@@ -57,13 +60,18 @@ class TuckERTTR(torch.nn.Module):
         xavier_normal_(self.T.weight.data)
 
     def forward(self, e1_idx, r_idx,t_idx):
-        
+
         e1 = self.E(e1_idx)
         r = self.R(r_idx)
         t = self.T(t_idx)
 
-        # Recover core tensor from TR (compute the trace of hadamart (element wise) product of all tensors)
-        W = torch.einsum('aib,bjc,ckd,dla->ijkl', list(self.Zlist))
+        # Product between embedding matrices and TT-cores
+        # RG1 = torch.mm(r,self.Glist[0].view(-1,self.dr))
+        # G2E = torch.einsum('aib,ic->acb',(self.Glist[1],e1))
+        # G3E = torch.einsum('aib,ic->acb',(self.Glist[2],self.E))
+        # TG4 = torch.mm(t,self.Glist[3].view(-1,self.dr).transpose())
+
+        W = torch.einsum('i1,1j2,3k4,4l->ijkl',list(self.Glist))
         W = W.view(self.dr, self.de, self.de, self.dt)
 
         # Mode 1 product with entity vector
@@ -76,6 +84,7 @@ class TuckERTTR(torch.nn.Module):
         x = torch.bmm(x, W_mat) 
 
         # Mode 3 product with temporal vector
+        t = self.T(t_idx)
         x = x.view(-1, self.de,self.dt)
         x = torch.bmm(x,t.view(*t.shape,-1))
 
