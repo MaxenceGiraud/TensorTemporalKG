@@ -33,7 +33,7 @@ def parse():
     parser.add_argument("--dt", type=int, default=50, nargs="?",
                     help="Temporal embedding dimensionality.")
     parser.add_argument("--ranks", type=int, default=10, nargs="?",
-                    help="Ranks of tensor for TR model.")
+                    help="Ranks of tensor for TR/TT model.")
     parser.add_argument("--device", type=str, default="cuda", nargs="?",
                     help="Device to run the code on. Either cuda or cpu")
     parser.add_argument("--early_stopping", type=int, default=False, nargs="?",
